@@ -1,0 +1,219 @@
+﻿@model IEnumerable<DACN_Quan_Ly_Kham_Chua_Benh.ViewModel.ThongKeViewModel>
+@{
+    ViewData["Title"] = "Thống kê lịch khám";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    @using (Html.BeginForm("Index", "ThongKe", FormMethod.Get))
+    {
+        <div class="row">
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label for="thongKeOption">Thống Kê:</label>
+                    @Html.DropDownList("thongKeOption", (SelectList)ViewBag.ThongKeOptions, new { @class = "form-control", id = "thongKeOptionDropdown" })
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label for="ngayBatDau">Ngày bắt đầu:</label>
+                    <input type="date" class="form-control" name="ngayBatDau" value="@ViewBag.NgayBatDau" id="ngaybatdau" />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label for="ngayKetThuc">Ngày kết thúc:</label>
+                    <input type="date" class="form-control" name="ngayKetThuc" value="@ViewBag.NgayKetThuc" id="ngayketthuc" />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label for="selectedBacSi">Chọn Bác Sĩ:</label>
+                    @Html.DropDownList("selectedBacSi", (SelectList)ViewBag.BacSiList, "Chọn Bác Sĩ", new { @class = "form-control", id = "selectedBacSiDropdown" })
+                </div>
+            </div>
+            <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+            <script>
+                $(document).ready(function () {
+                    updateFormState();
+                    $("#thongKeOptionDropdown").change(function () {
+                        updateFormState();
+                    });
+
+                    function updateFormState() {
+                        var selectedValue = $("#thongKeOptionDropdown").val();
+
+                        //Khóa ngày bắt đầu và ngày kết thúc nếu trạng thái =0
+                        $("#ngaybatdau, #ngayketthuc").prop("disabled", selectedValue === "0");
+
+                        //Khóa ngày combobox bác sĩ nếu trạng thái =0
+                        $("#selectedBacSiDropdown").prop("disabled", selectedValue === "0");
+
+                        //Khóa ngày combobox bác sĩ nếu trạng thái =1
+                        if (selectedValue === "1") {
+                            $("#selectedBacSiDropdown").prop("disabled", true);
+                        }
+                        //Ngược lại nếu trạng thái = 3 khóa nbd, nkt, cbo bác sĩ
+                        else if (selectedValue === "3") {
+                            $("#ngaybatdau, #ngayketthuc").prop("disabled", true);
+
+                            // Enable all inputs
+                            $("#selectedBacSiDropdown").prop("disabled", true);
+                        }
+                    }
+                });
+            </script>
+
+
+
+        </div>
+        <br>
+        <button type="submit" class="btn btn-primary">Thống kê</button>
+    }
+    @if (ViewBag.ThongKeOptions.SelectedValue == 0)
+    {
+        <p>Vui lòng chọn trạng thái</p>
+    }
+    else if (ViewBag.ThongKeOptions.SelectedValue == 1)
+    {
+        @if (Model == null || !Model.Any())// Model.Any kiểm tra xem mô hình có dữ liệu không
+        {
+            <br>
+            <p class="alert alert-info text-center">Không có dữ liệu thống kê</p>
+        }
+        else
+        {
+            <div style="width:70%; margin: 0 auto; text-align: center;">
+                <canvas id="barChart" width="70" height="40"></canvas>
+                <script>
+                    var barChartData = {
+                        labels: ["Hoàn Thành", "Hủy", "Chưa Hoàn Thành"],
+                        datasets: [{
+                            label: '@Html.Raw(ViewBag.ThongKeMessage1)',
+                            backgroundColor: ["rgba(151,249,190,0.5)", "rgba(255,0,0,1)", "rgba(255,192,0,0.5)"],
+                            borderColor: ["rgba(255,255,255,1)", "rgba(255,0,0,1)", "rgba(255,255,255,1)"],
+                            borderWidth: 1,
+                            data: [@ViewBag.Length1, @ViewBag.Length3, @ViewBag.Length2 ]
+                        }]
+                    };
+
+                    var ctx = document.getElementById('barChart').getContext('2d');
+                    var myBarChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: barChartData,
+                        options: {
+                            responsive: true,
+                            scales: {
+                                x: {
+                                    beginAtZero: true
+                                },
+                                y: {
+                                    beginAtZero: true,
+                                    type: 'linear', // Sử dụng trục y kiểu linear
+                                    ticks: {
+                                        stepSize: 1, // Bước giữa các giá trị trục y
+                                        suggestedMin: 0, // Giá trị tối thiểu của trục y
+                                        suggestedMax: Math.ceil(Math.max(@ViewBag.Length1, @ViewBag.Length3, @ViewBag.Length2)) // Giá trị tối đa của trục y
+                                    }
+                                }
+                            }
+                        }
+                    });
+                </script>
+            </div>
+        }
+    }
+    else if (ViewBag.ThongKeOptions.SelectedValue == 2)
+    {
+        @if (Model == null || !Model.Any())
+        {
+            <br>
+            <p class="alert alert-info text-center">Không có dữ liệu thống kê</p>
+        }
+        else
+        {
+            <div style="width:70%; margin: 0 auto; text-align: center;">
+                <div class="text-center">
+                    @ViewBag.ThongKeMessage
+                </div>
+                <canvas id="barChart" width="80" height="40"></canvas>
+                <script>
+                    var barChartData = {
+                        labels: ["Hoàn Thành", "Hủy", "Chưa Hoàn Thành"],
+                        datasets: [{
+                            label: '@Html.Raw(ViewBag.ThongKeMessage2)',
+                            backgroundColor: ["rgba(151,249,190,0.5)", "rgba(255,0,0,1)", "rgba(255,192,0,0.5)"],
+                            borderColor: ["rgba(255,255,255,1)", "rgba(255,0,0,1)", "rgba(255,255,255,1)"],
+                            borderWidth: 1,
+                            data: [@ViewBag.Length1, @ViewBag.Length3, @ViewBag.Length2 ]
+                        }]
+                    };
+
+                    var ctx = document.getElementById('barChart').getContext('2d');
+                    var myBarChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: barChartData,
+                        options: {
+                            responsive: true,
+                            scales: {
+                                x: {
+                                    beginAtZero: true
+                                },
+                                y: {
+                                    beginAtZero: true,
+                                    type: 'linear', // Sử dụng trục y kiểu linear
+                                    ticks: {
+                                        stepSize: 1, // Bước giữa các giá trị trục y
+                                        suggestedMin: 0, // Giá trị tối thiểu của trục y
+                                        suggestedMax: Math.ceil(Math.max(@ViewBag.Length1, @ViewBag.Length2, @ViewBag.Length3)) // Giá trị tối đa của trục y
+                                    }
+                                }
+                            }
+                        }
+                    });
+                </script>
+            </div>
+        }
+    }
+    else if (ViewBag.ThongKeOptions.SelectedValue == 3)
+    {
+        @if (Model == null || !Model.Any())
+        {
+            <br>
+            <p class="alert alert-info text-center">Không có dữ liệu thống kê</p>
+        }
+        else
+        {
+            <div style="width:70%; margin: 0 auto; text-align: center;">
+                <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+                <canvas id="barChart" width="400" height="200"></canvas>
+                <script>
+                    var labels = @Html.Raw(Json.Serialize(Model.Select(item => item.Nam)));
+                    var data = @Html.Raw(Json.Serialize(Model.Select(item => item.TongDoanhThu)));
+
+                    var ctx = document.getElementById('barChart').getContext('2d');
+                    var myChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Doanh Số Theo Năm',
+                                data: data,
+                                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                                borderColor: 'rgba(75, 192, 192, 1)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                </script>
+            </div>
+        }
+    }
+</div>
